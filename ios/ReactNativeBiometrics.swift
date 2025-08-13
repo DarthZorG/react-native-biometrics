@@ -8,7 +8,10 @@ import CryptoKit
 class ReactNativeBiometrics: NSObject {
   
   private var configuredKeyAlias: String?
-  
+ 
+  static let KEY_TYPE_EC = "EC"
+  static let KEY_TYPE_RSA = "RSA"
+
   override init() {
     super.init()
     // Load configured key alias from UserDefaults
@@ -261,31 +264,45 @@ class ReactNativeBiometrics: NSObject {
   // Debug and diagnostic utilities have been moved to ReactNativeBiometricDebug
   
   @objc
-  func createKeys(_ keyAlias: NSString?,
+  func createKeys(_ keyAlias: NSString?, keyType: NSString?, 
                   resolver resolve: @escaping RCTPromiseResolveBlock,
                   rejecter reject: @escaping RCTPromiseRejectBlock) {
     ReactNativeBiometricDebug.debugLog("createKeys called with keyAlias: \(keyAlias ?? "default")")
     
     let keyTag = getKeyAlias(keyAlias as String?)
+    let typeString = (keyType  as String?) ?? ReactNativeBiometrics.KEY_TYPE_EC
+    ReactNativeBiometricDebug.debugLog("createKeys keyType: \(typeString)")
+
     guard let keyTagData = keyTag.data(using: .utf8) else {
       handleError(.dataEncodingFailed, reject: reject)
       return
     }
     
+    switch typeString {
+      case ReactNativeBiometrics.KEY_TYPE_EC:
+        break
+      case ReactNativeBiometrics.KEY_TYPE_RSA:
+        break
+      default:
+        ReactNativeBiometricDebug.debugLog("createKeys failed - Invalid Key type \(typeString)")
+        handleError(.accessControlCreationFailed, reject: reject)
+        return
+    }
+
     // Delete existing key if it exists
-    let deleteQuery = createKeychainQuery(keyTag: keyTag, includeSecureEnclave: false)
+    let deleteQuery = createKeychainQuery(keyTag: keyTag, onlySecureEnclave: false)
     SecItemDelete(deleteQuery as CFDictionary)
     ReactNativeBiometricDebug.debugLog("Deleted existing key (if any)")
     
     // Create access control for biometric authentication
-    guard let accessControl = createBiometricAccessControl() else {
+    guard let accessControl = createBiometricAccessControl(keyType: typeString) else {
       ReactNativeBiometricDebug.debugLog("createKeys failed - Could not create access control")
       handleError(.accessControlCreationFailed, reject: reject)
       return
     }
     
     // Key generation parameters
-    let keyAttributes = createKeyGenerationAttributes(keyTagData: keyTagData, accessControl: accessControl)
+    let keyAttributes = createKeyGenerationAttributes(keyTagData: keyTagData, accessControl: accessControl, keyType: typeString)
     
     var error: Unmanaged<CFError>?
     guard let privateKey = SecKeyCreateRandomKey(keyAttributes as CFDictionary, &error) else {
@@ -330,7 +347,7 @@ class ReactNativeBiometrics: NSObject {
     let keyTag = getKeyAlias(keyAlias as String?)
     
     // Query to find the key
-    let query = createKeychainQuery(keyTag: keyTag, includeSecureEnclave: false)
+    let query = createKeychainQuery(keyTag: keyTag, onlySecureEnclave: false)
     
     // Check if key exists first
     let checkStatus = SecItemCopyMatching(query as CFDictionary, nil)
@@ -458,7 +475,7 @@ class ReactNativeBiometrics: NSObject {
     // Query to find the key (including Secure Enclave token for proper key lookup)
     let query = createKeychainQuery(
       keyTag: keyTag,
-      includeSecureEnclave: true,
+      onlySecureEnclave: false, 
       returnRef: true,
       returnAttributes: true
     )
@@ -582,7 +599,7 @@ class ReactNativeBiometrics: NSObject {
     // Query to find the key (including Secure Enclave token for proper key lookup)
     let query = createKeychainQuery(
       keyTag: keyTag,
-      includeSecureEnclave: true,
+      onlySecureEnclave: false, 
       returnRef: true
     )
     
@@ -669,7 +686,7 @@ class ReactNativeBiometrics: NSObject {
     // Query to find the key (including Secure Enclave token for proper key lookup)
     let query = createKeychainQuery(
       keyTag: keyTag,
-      includeSecureEnclave: true,
+      onlySecureEnclave: false, 
       returnRef: true
     )
     
@@ -731,7 +748,7 @@ class ReactNativeBiometrics: NSObject {
     // Query to find the key
     let query = createKeychainQuery(
       keyTag: keyTag,
-      includeSecureEnclave: false,
+      onlySecureEnclave: false,
       returnRef: true,
       returnAttributes: true
     )

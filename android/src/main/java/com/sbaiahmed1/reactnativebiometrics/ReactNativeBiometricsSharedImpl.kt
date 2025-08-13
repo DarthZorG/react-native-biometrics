@@ -195,7 +195,7 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
     }
   }
 
-  fun createKeys(keyAlias: String?, promise: Promise) {
+  fun createKeys(keyAlias: String?, keyType: String?, promise: Promise) {
     val actualKeyAlias = getKeyAlias(keyAlias)
     debugLog("createKeys called with keyAlias: ${keyAlias ?: "default"}, using: $actualKeyAlias")
     try {

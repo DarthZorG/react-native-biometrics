@@ -110,7 +110,7 @@ public func generateKeyAlias(customAlias: String? = nil, configuredAlias: String
  */
 public func createKeychainQuery(
   keyTag: String,
-  includeSecureEnclave: Bool = true,
+  onlySecureEnclave: Bool = false,
   returnRef: Bool = false,
   returnAttributes: Bool = false
 ) -> [String: Any] {
@@ -123,7 +123,7 @@ public func createKeychainQuery(
     kSecAttrApplicationTag as String: keyTagData
   ]
 
-  if includeSecureEnclave {
+  if onlySecureEnclave {
     query[kSecAttrTokenID as String] = kSecAttrTokenIDSecureEnclave
   }
 
@@ -142,11 +142,19 @@ public func createKeychainQuery(
  * Creates access control for biometric authentication
  * - Returns: SecAccessControl for biometric keys or nil if creation fails
  */
-public func createBiometricAccessControl() -> SecAccessControl? {
+public func createBiometricAccessControl(keyType: String) -> SecAccessControl? {
+  if keyType == ReactNativeBiometrics.KEY_TYPE_EC {
+    return SecAccessControlCreateWithFlags(
+      kCFAllocatorDefault,
+      kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly, /*kSecAttrAccessibleWhenUnlockedThisDeviceOnly,*/
+      [.biometryAny, .privateKeyUsage],
+      nil
+    )
+  }
   return SecAccessControlCreateWithFlags(
     kCFAllocatorDefault,
-    kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
-    [.biometryAny, .privateKeyUsage],
+    kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly, /*kSecAttrAccessibleWhenUnlockedThisDeviceOnly,*/
+    [.biometryAny],
     nil
   )
 }
@@ -160,18 +168,32 @@ public func createBiometricAccessControl() -> SecAccessControl? {
  */
 public func createKeyGenerationAttributes(
   keyTagData: Data,
-  accessControl: SecAccessControl
+  accessControl: SecAccessControl,
+  keyType: String,
 ) -> [String: Any] {
+  if keyType == ReactNativeBiometrics.KEY_TYPE_EC {
+    return [
+      kSecAttrKeyType as String:  kSecAttrKeyTypeECSECPrimeRandom, 
+      kSecAttrKeySizeInBits as String: 256,
+      kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave, 
+      kSecPrivateKeyAttrs as String: [
+        kSecAttrIsPermanent as String: true,
+        kSecAttrApplicationTag as String: keyTagData,
+        kSecAttrAccessControl as String: accessControl
+      ]
+    ]
+  }
   return [
-    kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
-    kSecAttrKeySizeInBits as String: 256,
-    kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave,
+    kSecAttrKeyType as String: kSecAttrKeyTypeRSA,
+    kSecAttrKeySizeInBits as String: 2048,
     kSecPrivateKeyAttrs as String: [
       kSecAttrIsPermanent as String: true,
+      kSecUseAuthenticationUI as String: kSecUseAuthenticationUIAllow,
       kSecAttrApplicationTag as String: keyTagData,
       kSecAttrAccessControl as String: accessControl
     ]
   ]
+
 }
 
 /**

@@ -46,6 +46,7 @@ public enum ReactNativeBiometricsError: Error {
   case emptyKeyAlias
   case invalidBase64
   case invalidParameters
+  case invalidKeyType
 
   case secureEnclaveNotAvailable
   case hardwareNotSupported
@@ -144,6 +145,8 @@ public enum ReactNativeBiometricsError: Error {
       return ("INVALID_BASE64", "Invalid base64 encoding")
     case .invalidParameters:
       return ("INVALID_PARAMETERS", "Invalid parameters provided")
+    case .invalidKeyType:
+      return ("INVALID_KEY_TYPE", "invalid Key Type, can be ither EC or RSA")
 
       // System Errors
     case .secureEnclaveNotAvailable:

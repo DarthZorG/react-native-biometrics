@@ -69,9 +69,12 @@ export function authenticateWithOptions(
     });
 }
 
-export function createKeys(keyAlias?: string): Promise<KeyCreationResult> {
+export function createKeys(
+  keyAlias?: string,
+  keyType?: string
+): Promise<KeyCreationResult> {
   logger.debug('Creating biometric keys', 'createKeys', { keyAlias });
-  return ReactNativeBiometrics.createKeys(keyAlias)
+  return ReactNativeBiometrics.createKeys(keyAlias, keyType)
     .then((result) => {
       logger.info('Keys created successfully', 'createKeys', {
         keyAlias,
