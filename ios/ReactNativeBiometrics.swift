@@ -349,15 +349,6 @@ class ReactNativeBiometrics: NSObject {
     // Query to find the key
     let query = createKeychainQuery(keyTag: keyTag, onlySecureEnclave: false)
     
-    // Check if key exists first
-    let checkStatus = SecItemCopyMatching(query as CFDictionary, nil)
-    
-    if checkStatus == errSecItemNotFound {
-      ReactNativeBiometricDebug.debugLog("No key found with tag '\(keyTag)' - nothing to delete")
-      resolve(["success": true])
-      return
-    }
-    
     // Delete the key
     let deleteStatus = SecItemDelete(query as CFDictionary)
     
